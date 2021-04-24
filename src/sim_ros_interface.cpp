@@ -84,6 +84,13 @@ public:
                 imageTransportShutdownPublisher_out out;
                 imageTransportShutdownPublisher(&in, &out);
             }
+            if(proxy->js_publisher)
+            {
+                jointStateShutdownPublisher_in in;
+                in.publisherHandle = proxy->handle;
+                jointStateShutdownPublisher_out out;
+                jointStateShutdownPublisher(&in, &out);
+            }
         }
         for(auto proxy : subscriberHandles.find(scriptID))
         {
@@ -435,6 +442,45 @@ public:
 
         publisherProxy->imageTransportPublisher.publish(image_msg);
     }
+
+
+    void jointStateAdvertise(jointStateAdvertise_in *in, jointStateAdvertise_out *out)
+    {
+        PublisherProxy *publisherProxy = new PublisherProxy();
+        publisherProxy->topicName = in->topicName;
+        publisherProxy->topicType = "sensor_msgs/JointState";
+
+        publisherProxy->js_publisher = nh->advertise<sensor_msgs::JointState>(in->topicName, in->queueSize);
+
+        if(!publisherProxy->js_publisher)
+        {
+            throw sim::exception("failed creation of ROS publisher");
+        }
+
+        out->publisherHandle = publisherProxy->handle = publisherHandles.add(publisherProxy, in->_.scriptID);
+    }
+
+    void jointStateShutdownPublisher(jointStateShutdownPublisher_in *in, jointStateShutdownPublisher_out *out)
+    {
+        PublisherProxy *publisherProxy = publisherHandles.get(in->publisherHandle);
+        publisherProxy->js_publisher.shutdown();
+        delete publisherHandles.remove(publisherProxy);
+    }
+    
+    void jointStatePublish(jointStatePublish_in *in, jointStatePublish_out *out)
+    {
+    	PublisherProxy *publisherProxy = publisherHandles.get(in->publisherHandle);
+    	sensor_msgs::JointState state_msg;
+    	state_msg.header.stamp = ros::Time::now();
+        state_msg.header.frame_id = "";//in->frame_id;
+        state_msg.name = in->name;
+        state_msg.position = in->position;
+        state_msg.velocity = in->velocity;
+        state_msg.effort = in->effort;
+        
+        publisherProxy->js_publisher.publish(state_msg);
+    }
+
 
     void getTime(getTime_in *in, getTime_out *out)
     {

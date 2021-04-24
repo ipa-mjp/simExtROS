@@ -43,6 +43,7 @@ struct PublisherProxy : Proxy
     std::string topicName;
     std::string topicType;
     ros::Publisher publisher;
+    ros::Publisher js_publisher;
     image_transport::Publisher imageTransportPublisher;
     ROSReadOptions rd_opt;
 };
